@@ -27,3 +27,5 @@ TESTED ON SAMSUNG A51 5G (Firmware A516BXXS9FXE3 + rooted by Magisk Android 13 O
 You can test and give me informations about specific phones.
 ## License
 MIT License
+<img width="480" height="1067" alt="output" src="https://github.com/user-attachments/assets/0cfa07fd-f44f-484d-83e3-3b13238e147c" />
+
