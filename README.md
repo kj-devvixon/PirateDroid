@@ -4,10 +4,11 @@ PirateDroid is an experimental Android application currently in early beta.
 Developed by KJ-Dev (kj-devvixon)
 
 ## Features
-- Lightweight UI
-- Experimental functionality
-- Open-source development
-- Root Checker
+- Lightweight UI.
+- Experimental functionality.
+- Open-source development.
+- Root Checker.
+- QuickDump™ – Fast system log & diagnostics collector.
 
 ## Status
 Project is currently in active development.
