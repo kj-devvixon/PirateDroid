@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ╔═══════════════════════════════════════════════╗
+  ║  PirateDroid — activity_main.xml              ║
+  ║  Retro Terminal UI — Dark Mode by default     ║
+  ╚═══════════════════════════════════════════════╝
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0A0A0A"
+    android:padding="8dp">
+
+    <!-- ══ HEADER BAR ════════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚓ PirateDroid v1.0"
+            android:textColor="#00FF41"
+            android:textSize="14sp"
+            android:fontFamily="monospace"
+            android:textStyle="bold"/>
+
+        <Button
+            android:id="@+id/btnToggleTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="☀ LIGHT"
+            android:textSize="11sp"
+            android:backgroundTint="#1A1A1A"
+            android:textColor="#00FF41"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"/>
+
+    </LinearLayout>
+
+    <!-- ══ TERMINAL OUTPUT ═══════════════════════════════════════ -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#0D0D0D"
+        android:padding="4dp">
+
+        <TextView
+            android:id="@+id/terminalOutput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#00FF41"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:lineSpacingMultiplier="1.2"
+            android:text=""
+            android:textIsSelectable="true"/>
+
+    </ScrollView>
+
+    <!-- ══ COMMAND INPUT ROW ══════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="4dp">
+
+        <EditText
+            android:id="@+id/commandInput"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:background="#1A1A1A"
+            android:textColor="#00FF41"
+            android:textCursorDrawable="@null"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:hint="$ enter command..."
+            android:textColorHint="#3D3D3D"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:inputType="text"
+            android:imeOptions="actionSend"
+            android:singleLine="true"
+            android:maxLines="1"/>
+
+        <Button
+            android:id="@+id/btnExecute"
+            android:layout_width="56dp"
+            android:layout_height="40dp"
+            android:text="▶"
+            android:textSize="16sp"
+            android:backgroundTint="#003300"
+            android:textColor="#00FF41"
+            android:layout_marginStart="4dp"/>
+
+    </LinearLayout>
+
+    <!-- ══ ACTION BUTTONS ════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <Button
+            android:id="@+id/btnGuide"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="📖 GUIDE"
+            android:textSize="11sp"
+            android:backgroundTint="#001A33"
+            android:textColor="#00BFFF"
+            android:layout_marginEnd="3dp"/>
+
+        <Button
+            android:id="@+id/btnQuickDump"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="💾 DUMP"
+            android:textSize="11sp"
+            android:backgroundTint="#1A1A00"
+            android:textColor="#FFD700"
+            android:layout_marginEnd="3dp"/>
+
+        <Button
+            android:id="@+id/btnReboot"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="🔄 REBOOT"
+            android:textSize="11sp"
+            android:backgroundTint="#1A0000"
+            android:textColor="#FF3131"/>
+
+    </LinearLayout>
+
+</LinearLayout>

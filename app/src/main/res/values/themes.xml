@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PirateDroid — res/values/themes.xml
+  Retro Terminal Theme — ciemne tło systemowe, brak domyślnych actionbar.
+-->
+<resources>
+
+    <!-- Główny motyw: brak ActionBar, pełen ekran terminala -->
+    <style name="Theme.PirateDroid" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">#0A0A0A</item>
+        <item name="android:statusBarColor">#0A0A0A</item>
+        <item name="android:navigationBarColor">#0A0A0A</item>
+        <item name="android:textColorPrimary">#00FF41</item>
+        <item name="colorPrimary">#00FF41</item>
+        <item name="colorPrimaryDark">#003300</item>
+        <item name="colorAccent">#00FF41</item>
+        <!-- Cursor EditText w kolorze terminala -->
+        <item name="android:colorControlActivated">#00FF41</item>
+        <item name="android:colorControlHighlight">#1A3300</item>
+    </style>
+
+</resources>
