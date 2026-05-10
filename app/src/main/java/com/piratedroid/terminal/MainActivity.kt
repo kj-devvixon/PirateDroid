@@ -31,6 +31,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnReboot:      Button
     private lateinit var btnToggleTheme: Button
 
+    // ─── Extra Keys ──────────────────────────────────────────────────
+    private lateinit var btnKeyCtrl:  Button
+    private lateinit var btnKeyAlt:   Button
+    private lateinit var btnKeyEsc:   Button
+    private lateinit var btnKeyTab:   Button
+    private lateinit var btnKeyUp:    Button
+    private lateinit var btnKeyDown:  Button
+    private lateinit var btnKeyLeft:  Button
+    private lateinit var btnKeyRight: Button
+    private lateinit var btnKeyHome:  Button
+    private lateinit var btnKeyEnd:   Button
+    private lateinit var btnKeyPgUp:  Button
+    private lateinit var btnKeyPgDn:  Button
+
     // ─── Shell ───────────────────────────────────────────────────────
     private var shellProcess: Process?       = null
     private var shellWriter:  BufferedWriter? = null
@@ -38,10 +52,13 @@ class MainActivity : AppCompatActivity() {
     private val mainHandler  = Handler(Looper.getMainLooper())
 
     // ─── State ───────────────────────────────────────────────────────
-    private var isDarkMode       = true
-    private var isRooted         = false
-    private val commandHistory   = mutableListOf<String>()
-    private var historyIndex     = 0
+    private var isDarkMode     = true
+    private var isRooted       = false
+    private val commandHistory = mutableListOf<String>()
+    private var historyIndex   = 0
+
+    // ─── Autocomplete ────────────────────────────────────────────────
+    private val autocompleteCache = mutableListOf<String>()
 
     // ─── Colors ──────────────────────────────────────────────────────
     private val C_GREEN  = 0xFF00FF41.toInt()
@@ -61,18 +78,151 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         bindViews()
         applyDarkTheme()
-        printBootSequence()   // 1. banner
-        initShell()           // 2. shell as user (temporary)
-        checkBatteryLevel()   // 3. battery
+        printBootSequence()
+        initShell()
+        checkBatteryLevel()
         setupListeners()
         openKeyboardWithDelay()
-        checkRootAsync()      // 4. async root test — result = proper banner
+        checkRootAsync()
+        buildAutocompleteCache()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         destroyShell()
         executor.shutdownNow()
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // AUTOCOMPLETE
+    // ════════════════════════════════════════════════════════════════
+
+    private fun buildAutocompleteCache() {
+        executor.execute {
+            val bins = mutableListOf<String>()
+            val searchDirs = listOf(
+                "/system/bin", "/system/xbin",
+                "/sbin", "/vendor/bin",
+                filesDir.absolutePath
+            )
+            searchDirs.forEach { dir ->
+                try {
+                    File(dir).listFiles()?.forEach { f ->
+                        if (f.canExecute()) bins.add(f.name)
+                    }
+                } catch (_: Exception) {}
+            }
+            // Dodajemy też built-in komendy shella
+            bins.addAll(listOf(
+                "cd", "ls", "pwd", "echo", "cat", "grep", "find",
+                "chmod", "chown", "mkdir", "rm", "mv", "cp", "touch",
+                "ps", "kill", "top", "df", "du", "mount", "umount",
+                "reboot", "su", "sh", "exit", "clear", "env", "export",
+                "which", "uname", "id", "whoami", "date", "uptime",
+                "getprop", "setprop", "logcat", "dmesg", "netstat",
+                "ping", "ifconfig", "ip", "wget", "curl", "tar",
+                "unzip", "zip", "dd", "hexdump", "strings"
+            ))
+            bins.sort()
+            mainHandler.post {
+                autocompleteCache.clear()
+                autocompleteCache.addAll(bins.distinct())
+                printColored("[TAB] Autocomplete ready — ${autocompleteCache.size} commands indexed.\n\n", C_CYAN)
+            }
+        }
+    }
+
+    private fun handleTabComplete() {
+        val input = commandInput.text.toString()
+        val cursorPos = commandInput.selectionStart
+
+        // Wyciągamy ostatnie słowo przed kursorem
+        val beforeCursor = input.substring(0, cursorPos)
+        val lastWord = beforeCursor.substringAfterLast(" ")
+
+        if (lastWord.isEmpty()) {
+            // Pokaż wszystkie komendy jeśli input pusty
+            printColored("[TAB] ${autocompleteCache.size} commands available. Type something first.\n", C_YELLOW)
+            return
+        }
+
+        // Szukamy w ścieżkach plików jeśli lastWord zawiera /
+        if (lastWord.contains("/")) {
+            handlePathComplete(input, beforeCursor, lastWord)
+            return
+        }
+
+        // Szukamy w cache komend
+        val matches = autocompleteCache.filter { it.startsWith(lastWord) }
+
+        when {
+            matches.isEmpty() -> {
+                printColored("[TAB] No match for: $lastWord\n", C_RED)
+            }
+            matches.size == 1 -> {
+                // Jeden wynik — uzupełniamy
+                val completed = beforeCursor.dropLast(lastWord.length) + matches[0] + " "
+                commandInput.setText(completed + input.substring(cursorPos))
+                commandInput.setSelection(completed.length)
+            }
+            else -> {
+                // Wiele wyników — pokazujemy listę i uzupełniamy wspólny prefix
+                val commonPrefix = matches.reduce { a, b ->
+                    a.commonPrefixWith(b)
+                }
+                if (commonPrefix.length > lastWord.length) {
+                    val completed = beforeCursor.dropLast(lastWord.length) + commonPrefix
+                    commandInput.setText(completed + input.substring(cursorPos))
+                    commandInput.setSelection(completed.length)
+                }
+                // Wyświetlamy opcje
+                printColored("[TAB] ${matches.size} matches:\n", C_YELLOW)
+                val row = matches.chunked(4).joinToString("\n") { chunk ->
+                    chunk.joinToString("  ") { it.padEnd(16) }
+                }
+                printColored("$row\n\n", C_WHITE)
+            }
+        }
+    }
+
+    private fun handlePathComplete(input: String, beforeCursor: String, lastWord: String) {
+        val dir = if (lastWord.contains("/")) {
+            lastWord.substringBeforeLast("/").let {
+                if (it.isEmpty()) "/" else it
+            }
+        } else "."
+        val prefix = lastWord.substringAfterLast("/")
+
+        try {
+            val matches = File(dir).listFiles()
+                ?.filter { it.name.startsWith(prefix) }
+                ?.map { if (it.isDirectory) it.name + "/" else it.name }
+                ?.sorted() ?: emptyList()
+
+            when {
+                matches.isEmpty() -> printColored("[TAB] No match in $dir\n", C_RED)
+                matches.size == 1 -> {
+                    val completed = beforeCursor.dropLast(prefix.length) + matches[0]
+                    commandInput.setText(completed + input.substring(beforeCursor.length))
+                    commandInput.setSelection(completed.length)
+                }
+                else -> {
+                    val commonPrefix = matches.reduce { a, b -> a.commonPrefixWith(b) }
+                    if (commonPrefix.length > prefix.length) {
+                        val completed = beforeCursor.dropLast(prefix.length) + commonPrefix
+                        commandInput.setText(completed + input.substring(beforeCursor.length))
+                        commandInput.setSelection(completed.length)
+                    }
+                    printColored("[TAB] ${matches.size} matches in $dir:\n", C_YELLOW)
+                    val row = matches.chunked(3).joinToString("\n") { chunk ->
+                        chunk.joinToString("  ") { it.padEnd(20) }
+                    }
+                    printColored("$row\n\n", C_WHITE)
+                }
+            }
+        } catch (e: Exception) {
+            printColored("[TAB] Error: ${e.message}\n", C_RED)
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -87,12 +237,12 @@ class MainActivity : AppCompatActivity() {
  ██╔═══╝ ██║██╔══██╗██╔══██║   ██║   ██╔══╝  
  ██║     ██║██║  ██║██║  ██║   ██║   ███████╗
  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
- ██████╗ ██████╗  ██████╗ ██╗██████╗ 
+ ██████╗ ██████╗  ██████╗ ██╗██████╗
  ██╔══██╗██╔══██╗██╔═══██╗██║██╔══██╗
  ██║  ██║██████╔╝██║   ██║██║██║  ██║
  ██║  ██║██╔══██╗██║   ██║██║██║  ██║
  ██████╔╝██║  ██║╚██████╔╝██║██████╔╝
- ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝╚═════╝ 
+ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝╚═════╝
  PirateDroid Shell & Root Checker
  ⚓ "Knowledge is the only treasure you cannot lose." ⚓
 
@@ -101,80 +251,43 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ROOT DETECTION — asynchronous, no hardcoding
+    // ROOT DETECTION
     // ════════════════════════════════════════════════════════════════
 
-    /**
-     * Real two-stage test:
-     *   1. Static  — does su binary exist on disk?
-     *   2. Dynamic — does OS actually accept "su -c id"?
-     *
-     * Only the system's response decides the banner.
-     * No assumptions made beforehand.
-     */
     private fun checkRootAsync() {
         printColored("[ROOT] Querying OS for su permissions...\n", C_CYAN)
-
         executor.execute {
-            // ── Stage 1: static su presence ───────────────────────
             val suPaths = listOf(
-                "/system/xbin/su",
-                "/system/bin/su",
-                "/sbin/su",
-                "/su/bin/su",
-                "/magisk/.core/bin/su",
-                "/data/adb/ksu/bin/su",
-                "/data/adb/magisk/su"
+                "/system/xbin/su", "/system/bin/su", "/sbin/su",
+                "/su/bin/su", "/magisk/.core/bin/su",
+                "/data/adb/ksu/bin/su", "/data/adb/magisk/su"
             )
             val staticFound = suPaths.firstOrNull { File(it).exists() }
-
-            // ── Stage 2: dynamic execution test ───────────────────
             var dynamicUid0   = false
             var dynamicOutput = ""
             var dynamicError  = ""
-
             try {
                 val proc = ProcessBuilder("su", "-c", "id")
-                    .redirectErrorStream(false)
-                    .start()
-
-                // wait max 4 seconds — Magisk may need a moment
+                    .redirectErrorStream(false).start()
                 val finished = proc.waitFor(4, java.util.concurrent.TimeUnit.SECONDS)
-
                 dynamicOutput = proc.inputStream.bufferedReader().readText().trim()
                 dynamicError  = proc.errorStream.bufferedReader().readText().trim()
-
-                if (finished && dynamicOutput.contains("uid=0")) {
-                    dynamicUid0 = true
-                }
+                if (finished && dynamicOutput.contains("uid=0")) dynamicUid0 = true
             } catch (e: Exception) {
                 dynamicError = e.message ?: "Exception: unknown error"
             }
-
             isRooted = dynamicUid0
-
-            // ── Result on UI thread ────────────────────────────────────
             mainHandler.post {
                 showRootBanner(staticFound, dynamicUid0, dynamicOutput, dynamicError)
             }
         }
     }
 
-    /**
-     * Banner depends EXCLUSIVELY on OS response.
-     * If root OK → congrats + reinit shell as root.
-     * If root NOT OK → specific diagnosis why.
-     */
     private fun showRootBanner(
-        staticPath:    String?,
-        dynamicUid0:   Boolean,
-        dynamicOutput: String,
-        dynamicError:  String
+        staticPath: String?, dynamicUid0: Boolean,
+        dynamicOutput: String, dynamicError: String
     ) {
         if (dynamicUid0) {
-            // ════════════════════════════════════
-            // ✅ OS accepted su — root works
-            // ════════════════════════════════════
             printColored("""
 ╔══════════════════════════════════════════════════╗
 ║                                                  ║
@@ -194,21 +307,14 @@ class MainActivity : AppCompatActivity() {
 """, C_RED)
             printColored("[ROOT] Restarting shell with root privileges...\n", C_YELLOW)
             initShellAs(useRoot = true)
-
         } else {
-            // ════════════════════════════════════
-            // ❌ OS rejected su — diagnosis
-            // ════════════════════════════════════
             printColored("""
 ┌──────────────────────────────────────────────────┐
 │   ⚓  ROOT FAILED                                 │
 │   OS rejected su or did not respond.             │
 └──────────────────────────────────────────────────┘
 """, C_YELLOW)
-
             printColored("── Diagnosis ──────────────────────────────────\n", C_ORANGE)
-
-            // Binary
             if (staticPath == null) {
                 printColored("✗ No su binary in known paths.\n", C_RED)
                 printColored("  → Phone is not rooted, OR\n", C_WHITE)
@@ -217,14 +323,11 @@ class MainActivity : AppCompatActivity() {
                 printColored("✓ su binary found: $staticPath\n", C_GREEN)
                 printColored("  → But OS did not execute it correctly.\n\n", C_ORANGE)
             }
-
-            // System error
             if (dynamicError.isNotEmpty()) {
                 printColored("✗ OS Error: $dynamicError\n", C_RED)
                 when {
                     dynamicError.contains("Permission denied", ignoreCase = true) ->
-                        printColored("  → SELinux Enforcing blocks su.\n" +
-                                "    Check: adb shell getenforce\n", C_YELLOW)
+                        printColored("  → SELinux Enforcing blocks su.\n    Check: adb shell getenforce\n", C_YELLOW)
                     dynamicError.contains("not found", ignoreCase = true) ->
                         printColored("  → su does not exist in system PATH.\n", C_YELLOW)
                     dynamicError.contains("No such file", ignoreCase = true) ->
@@ -234,14 +337,10 @@ class MainActivity : AppCompatActivity() {
                 }
                 printColored("\n", C_WHITE)
             }
-
-            // Partial response (uid != 0)
             if (dynamicOutput.isNotEmpty() && !dynamicUid0) {
                 printColored("✗ su responded, but uid != 0: $dynamicOutput\n", C_ORANGE)
                 printColored("  → Fake su, or partial root.\n\n", C_YELLOW)
             }
-
-            // Timeout — no response at all
             if (dynamicError.isEmpty() && dynamicOutput.isEmpty()) {
                 printColored("✗ No response (timeout 4s).\n", C_RED)
                 printColored("  Possible causes:\n", C_YELLOW)
@@ -251,7 +350,6 @@ class MainActivity : AppCompatActivity() {
                 printColored("  4. SELinux in Enforcing mode\n", C_WHITE)
                 printColored("  5. Reboot after Magisk installation not done\n\n", C_WHITE)
             }
-
             printColored("──────────────────────────────────────────────\n", C_ORANGE)
             printColored("Acting as a common sailor. ⚓\n\n", C_YELLOW)
         }
@@ -287,8 +385,7 @@ class MainActivity : AppCompatActivity() {
             val reader = BufferedReader(InputStreamReader(shellProcess!!.inputStream))
             var line: String?
             while (reader.readLine().also { line = it } != null) {
-                val out = "$line\n"
-                mainHandler.post { printColored(out, C_WHITE) }
+                mainHandler.post { printColored("$line\n", C_WHITE) }
             }
         } catch (e: IOException) {
             mainHandler.post { printColored("\n[SESSION TERMINATED]\n", C_ORANGE) }
@@ -309,6 +406,14 @@ class MainActivity : AppCompatActivity() {
             printColored("[ERROR] ${e.message}\n", C_RED); initShell()
         }
         commandInput.setText("")
+    }
+
+    private fun sendEscapeSequence(seq: String) {
+        try {
+            shellWriter?.apply { write(seq); flush() }
+        } catch (e: IOException) {
+            printColored("[ERROR] ${e.message}\n", C_RED)
+        }
     }
 
     private fun destroyShell() {
@@ -345,7 +450,6 @@ class MainActivity : AppCompatActivity() {
         printColored("\n[QuickDump™] Collecting data...\n", C_YELLOW)
         executor.execute {
             val ts   = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            // getExternalFilesDir doesn't require MANAGE_EXTERNAL_STORAGE on Android 11+
             val dir  = getExternalFilesDir(null) ?: filesDir
             val file = File(dir, "dump_$ts.txt")
             val sections = linkedMapOf(
@@ -393,14 +497,13 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════════
 
     private fun showRebootMenu() {
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("⚓ PirateDroid Reboot Manager")
             .setMessage("Battery: ${getBatteryLevel()}% — choose mode:")
             .setPositiveButton("⬇️ Download") { _, _ -> rebootTo("reboot download") }
-            .setNeutralButton("🔄 Reboot") { _, _ -> rebootTo("reboot") }
+            .setNeutralButton("🔄 Reboot")    { _, _ -> rebootTo("reboot") }
             .setNegativeButton("🔧 Recovery") { _, _ -> rebootTo("reboot recovery") }
-            .create()
-        dialog.show()
+            .create().show()
     }
 
     private fun rebootTo(mode: String) {
@@ -424,29 +527,29 @@ class MainActivity : AppCompatActivity() {
     private fun showGuide() {
         printColored("""
 ╔══════════════════════════════════════════════════╗
-║   ⚓ MODDER'S GOLDEN RULES — Samsung A51 5G ⚓  ║
+║   ⚓ MODDER'S GOLDEN RULES — Samsung A51 5G ⚓     ║
 ╠══════════════════════════════════════════════════╣
-║  ⚡ #1 BATTERY — min. 50%, optimal 80%+         ║
+║  ⚡ #1 BATTERY — min. 50%, optimal 80%+           ║
 ║                                                  ║
-║  📱 #2 A51 5G — patch init_boot.img!           ║
+║  📱 #2 A51 5G — patch init_boot.img!             ║
 ║     1. Download firmware SM-A516B                ║
 ║     2. Extract init_boot.img from AP_*.tar.md5   ║
 ║     3. Magisk → Install → Patch a File           ║
 ║     4. Heimdall flash --INIT_BOOT patched.img    ║
 ║                                                  ║
-║  🐧 #3 LINUX — Heimdall (open-source Odin)      ║
+║  🐧 #3 LINUX — Heimdall (open-source Odin)       ║
 ║     sudo apt install heimdall-flash              ║
 ║                                                  ║
-║  🔐 #4 SECURITY                                 ║
+║  🔐 #4 SECURITY                                  ║
 ║     Backup EFS before modding (IMEI!):           ║
 ║     dd if=/dev/block/by-name/efs \               ║
 ║        of=/sdcard/efs_backup.img                 ║
 ║     Knox Counter = IRREVERSIBLE!                 ║
 ║                                                  ║
-║  📚 #5 EDUCATION                                ║
-║     XDA: xda-developers.com/samsung-a51-5g      ║
+║  📚 #5 EDUCATION                                 ║
+║     XDA: xda-developers.com/samsung-a51-5g       ║
 ║     Magisk: github.com/topjohnwu/Magisk          ║
-║     Heimdall: gitlab.com/BenjaminDobell/Heimdall ║
+║     Heimdall: github.com/benjamin-dobell/heimdall║
 ╚══════════════════════════════════════════════════╝
 """, C_YELLOW)
     }
@@ -464,6 +567,18 @@ class MainActivity : AppCompatActivity() {
         btnQuickDump   = findViewById(R.id.btnQuickDump)
         btnReboot      = findViewById(R.id.btnReboot)
         btnToggleTheme = findViewById(R.id.btnToggleTheme)
+        btnKeyCtrl     = findViewById(R.id.btnKeyCtrl)
+        btnKeyAlt      = findViewById(R.id.btnKeyAlt)
+        btnKeyEsc      = findViewById(R.id.btnKeyEsc)
+        btnKeyTab      = findViewById(R.id.btnKeyTab)
+        btnKeyUp       = findViewById(R.id.btnKeyUp)
+        btnKeyDown     = findViewById(R.id.btnKeyDown)
+        btnKeyLeft     = findViewById(R.id.btnKeyLeft)
+        btnKeyRight    = findViewById(R.id.btnKeyRight)
+        btnKeyHome     = findViewById(R.id.btnKeyHome)
+        btnKeyEnd      = findViewById(R.id.btnKeyEnd)
+        btnKeyPgUp     = findViewById(R.id.btnKeyPgUp)
+        btnKeyPgDn     = findViewById(R.id.btnKeyPgDn)
         terminalOutput.typeface = Typeface.MONOSPACE
         commandInput.typeface   = Typeface.MONOSPACE
     }
@@ -547,18 +662,51 @@ class MainActivity : AppCompatActivity() {
         btnGuide.setOnClickListener     { showGuide() }
         btnQuickDump.setOnClickListener { performQuickDump() }
         btnReboot.setOnClickListener    { showRebootMenu() }
-
         btnToggleTheme.setOnClickListener {
             if (isDarkMode) applyLightTheme() else applyDarkTheme()
         }
 
         terminalOutput.setOnLongClickListener {
             val cb = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            cb.setPrimaryClip(
-                android.content.ClipData.newPlainText("PirateDroid", terminalOutput.text)
-            )
+            cb.setPrimaryClip(android.content.ClipData.newPlainText("PirateDroid", terminalOutput.text))
             Toast.makeText(this, "⚓ Log copied!", Toast.LENGTH_SHORT).show()
             true
         }
+
+        // ══ EXTRA KEYS ══════════════════════════════════════════════
+        btnKeyCtrl.setOnClickListener  { sendEscapeSequence("\u0003") }
+        btnKeyAlt.setOnClickListener   { sendEscapeSequence("\u001b") }
+        btnKeyEsc.setOnClickListener   { sendEscapeSequence("\u001b") }
+        btnKeyTab.setOnClickListener   { handleTabComplete() }
+        btnKeyUp.setOnClickListener    {
+            if (historyIndex > 0) {
+                historyIndex--
+                commandInput.setText(commandHistory[historyIndex])
+                commandInput.setSelection(commandInput.text.length)
+            } else sendEscapeSequence("\u001b[A")
+        }
+        btnKeyDown.setOnClickListener  {
+            if (historyIndex < commandHistory.size - 1) {
+                historyIndex++
+                commandInput.setText(commandHistory[historyIndex])
+                commandInput.setSelection(commandInput.text.length)
+            } else {
+                historyIndex = commandHistory.size
+                commandInput.setText("")
+                sendEscapeSequence("\u001b[B")
+            }
+        }
+        btnKeyLeft.setOnClickListener  {
+            val pos = commandInput.selectionStart
+            if (pos > 0) commandInput.setSelection(pos - 1)
+        }
+        btnKeyRight.setOnClickListener {
+            val pos = commandInput.selectionStart
+            if (pos < commandInput.text.length) commandInput.setSelection(pos + 1)
+        }
+        btnKeyHome.setOnClickListener  { commandInput.setSelection(0) }
+        btnKeyEnd.setOnClickListener   { commandInput.setSelection(commandInput.text.length) }
+        btnKeyPgUp.setOnClickListener  { scrollView.smoothScrollBy(0, -600) }
+        btnKeyPgDn.setOnClickListener  { scrollView.smoothScrollBy(0, 600) }
     }
 }

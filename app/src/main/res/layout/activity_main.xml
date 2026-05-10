@@ -1,10 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ╔═══════════════════════════════════════════════╗
-  ║  PirateDroid — activity_main.xml              ║
-  ║  Retro Terminal UI — Dark Mode by default     ║
-  ╚═══════════════════════════════════════════════╝
--->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rootLayout"
@@ -26,7 +20,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="⚓ PirateDroid v1.0"
+            android:text="⚓ PirateDroid v0.2"
             android:textColor="#00FF41"
             android:textSize="14sp"
             android:fontFamily="monospace"
@@ -67,13 +61,148 @@
 
     </ScrollView>
 
+    <!-- ══ EXTRA KEYS ROW ════════════════════════════════════════ -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingTop="4dp"
+        android:paddingBottom="2dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnKeyCtrl"
+                android:layout_width="56dp"
+                android:layout_height="34dp"
+                android:text="CTRL"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#00FF41"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyAlt"
+                android:layout_width="48dp"
+                android:layout_height="34dp"
+                android:text="ALT"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#00FF41"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyEsc"
+                android:layout_width="48dp"
+                android:layout_height="34dp"
+                android:text="ESC"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#FF3131"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyTab"
+                android:layout_width="48dp"
+                android:layout_height="34dp"
+                android:text="TAB"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#FFD700"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyUp"
+                android:layout_width="42dp"
+                android:layout_height="34dp"
+                android:text="▲"
+                android:textSize="14sp"
+                android:backgroundTint="#001A33"
+                android:textColor="#00BFFF"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyDown"
+                android:layout_width="42dp"
+                android:layout_height="34dp"
+                android:text="▼"
+                android:textSize="14sp"
+                android:backgroundTint="#001A33"
+                android:textColor="#00BFFF"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyLeft"
+                android:layout_width="42dp"
+                android:layout_height="34dp"
+                android:text="◀"
+                android:textSize="14sp"
+                android:backgroundTint="#001A33"
+                android:textColor="#00BFFF"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyRight"
+                android:layout_width="42dp"
+                android:layout_height="34dp"
+                android:text="▶"
+                android:textSize="14sp"
+                android:backgroundTint="#001A33"
+                android:textColor="#00BFFF"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyHome"
+                android:layout_width="56dp"
+                android:layout_height="34dp"
+                android:text="HOME"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#00FF41"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyEnd"
+                android:layout_width="48dp"
+                android:layout_height="34dp"
+                android:text="END"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#00FF41"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyPgUp"
+                android:layout_width="56dp"
+                android:layout_height="34dp"
+                android:text="PG UP"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#00FF41"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btnKeyPgDn"
+                android:layout_width="56dp"
+                android:layout_height="34dp"
+                android:text="PG DN"
+                android:textSize="10sp"
+                android:backgroundTint="#1A1A1A"
+                android:textColor="#00FF41"/>
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
     <!-- ══ COMMAND INPUT ROW ══════════════════════════════════════ -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="6dp"
+        android:paddingTop="4dp"
         android:paddingBottom="4dp">
 
         <EditText
