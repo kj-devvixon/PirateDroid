@@ -20,7 +20,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="⚓ PirateDroid v0.2"
+            android:text="⚓ PirateDroid v0.3"
             android:textColor="#00FF41"
             android:textSize="14sp"
             android:fontFamily="monospace"
@@ -208,21 +208,21 @@
         <EditText
             android:id="@+id/commandInput"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="31dp"
             android:layout_weight="1"
             android:background="#1A1A1A"
-            android:textColor="#00FF41"
-            android:textCursorDrawable="@null"
-            android:textSize="13sp"
             android:fontFamily="monospace"
             android:hint="$ enter command..."
-            android:textColorHint="#3D3D3D"
+            android:imeOptions="actionSend"
+            android:inputType="text"
+            android:maxLines="1"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
-            android:inputType="text"
-            android:imeOptions="actionSend"
             android:singleLine="true"
-            android:maxLines="1"/>
+            android:textColor="#00FF41"
+            android:textColorHint="#3D3D3D"
+            android:textCursorDrawable="@null"
+            android:textSize="13sp" />
 
         <Button
             android:id="@+id/btnExecute"
@@ -274,7 +274,18 @@
             android:text="🔄 REBOOT"
             android:textSize="11sp"
             android:backgroundTint="#1A0000"
-            android:textColor="#FF3131"/>
+            android:textColor="#FF3131"
+            android:layout_marginEnd="3dp"/>
+
+        <Button
+            android:id="@+id/btnPirpkg"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="📦 PKG"
+            android:textSize="11sp"
+            android:backgroundTint="#1A001A"
+            android:textColor="#BF00FF"/>
 
     </LinearLayout>
 

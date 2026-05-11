@@ -1,0 +1,23 @@
+PirateDroid Library Bundle
+==========================
+
+Place your ARM64 static binaries bundle here as:
+  bundle.zip
+
+The zip should contain binaries at the root level, e.g.:
+  busybox
+  python3
+  curl
+  wget
+  openssh
+  ...
+
+Recommended sources for static ARM64 binaries:
+  - BusyBox: https://busybox.net/downloads/binaries/
+  - Static tools: https://github.com/mossberg/static-binaries
+  - Python ARM64: https://github.com/extremecoders-re/python-for-android
+
+All binaries will be extracted to:
+  /data/data/com.piratedroid.terminal/files/.libraries/
+
+And added to PATH automatically on app launch.
