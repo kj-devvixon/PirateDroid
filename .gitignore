@@ -50,3 +50,4 @@ google-services.json
 # Android Profiling
 *.hprof
 >>>>>>> 3c2232c2cafba62c05d12e405062dbaac0ba1b2f
+.idea/
